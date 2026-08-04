@@ -15,6 +15,26 @@
 {{- $_ := dict "name" .Values.config.mongodb.name "url" .Values.config.mongodb.url | set $smfcfg.configuration "mongodb" -}}
 {{- end }}
 
+{{/*
+Lawful Interception. The credential paths follow the Secret mounted at certDir by
+the deployment, and x1Listen matches the port the X1 Service exposes, so enabling
+LI needs no second place to keep in step. Optional fields are set only when
+configured: an empty admfUrl leaves NE-initiated fault reporting off, and an empty
+admfId accepts any correctly-bound ADMF rather than a named one.
+*/}}
+{{- if and .Values.config.smf.li.enabled (not (hasKey $smfcfg.configuration "li")) -}}
+{{- $li := dict
+      "x1Listen" (printf ":%v" .Values.config.smf.li.x1.port)
+      "neId" .Values.config.smf.li.neId
+      "cert" (printf "%s/tls.crt" .Values.config.smf.li.certDir)
+      "key" (printf "%s/tls.key" .Values.config.smf.li.certDir)
+      "caCert" (printf "%s/ca.crt" .Values.config.smf.li.certDir) -}}
+{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout -}}
+{{- if $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
+{{- end -}}
+{{- $_ := $li | set $smfcfg.configuration "li" -}}
+{{- end }}
+
 {{- if not (hasKey $smfcfg "logger") -}}
 {{- $_ := .Values.config.logger | set $smfcfg "logger" -}}
 {{- end }}

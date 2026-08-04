@@ -1,0 +1,68 @@
+{{/*
+# SPDX-FileCopyrightText: 2026 Forsway Scandinavia AB
+
+# SPDX-License-Identifier: Apache-2.0
+*/}}
+
+{{/*
+X1 provisioning endpoints (ETSI TS 103 221-1).
+
+The administration function that tasks these network elements runs outside the
+cluster, so X1 — unlike X2/X3, which the network functions dial outbound — is an
+inbound interface and needs a Service. One is created only for a network function
+that has LI enabled, so a deployment without LI carries no such object at all.
+
+The TLS session MUST reach the network function unterminated. It terminates X1
+itself and authenticates the ADMF from the client certificate, including the
+identifier binding TS 103 221-1 clause 8.2.4 requires; anything that terminates
+TLS in front of it (an ingress, a TLS-terminating load balancer) removes the
+certificate from view and makes that check unenforceable. Hence a plain Service,
+never an Ingress.
+*/}}
+
+{{- range $nf := list "amf" "smf" }}
+{{- $cfg := index $.Values.config $nf }}
+{{- if and $cfg.deploy $cfg.li.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $nf }}-x1
+  labels:
+{{ tuple $nf $ | include "5g-control-plane.metadata_labels" | indent 4 }}
+{{- with $cfg.li.x1.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  type: {{ $cfg.li.x1.serviceType }}
+  selector:
+{{ tuple $nf $ | include "5g-control-plane.metadata_labels" | indent 4 }}
+  ports:
+  - name: x1
+    port: {{ $cfg.li.x1.port }}
+    targetPort: {{ $cfg.li.x1.port }}
+    protocol: TCP
+{{- if eq $cfg.li.x1.serviceType "NodePort" }}
+{{- if $cfg.li.x1.nodePort }}
+    nodePort: {{ $cfg.li.x1.nodePort }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Deliberately no NetworkPolicy here. Restricting X1 to the LI system's addresses
+is worth doing, but a pod-level ingress policy is the wrong instrument: any
+NetworkPolicy selecting a pod isolates it for the listed policyTypes, so an
+Ingress policy admitting only X1 would deny everything else the network function
+must accept — SBI from the other network functions, NGAP from the RAN — and take
+the core down. Getting it right would mean enumerating every port each network
+function accepts and keeping that list correct across chart versions, which is a
+worse failure waiting to happen than the exposure it mitigates.
+
+Restrict the exposed node port at the node's firewall instead, where the rule is
+about one port and cannot silently sever unrelated traffic. The network function
+itself is not relying on that: it refuses any peer without a valid LI certificate
+carrying the responsible ADMF's identifier (TS 103 221-1 clause 8.2.4).
+*/}}

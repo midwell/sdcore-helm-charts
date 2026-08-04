@@ -483,6 +483,30 @@ config:
       enabled: false
       certSecret: amf-li-certs
       certDir: /etc/li/certs
+      # Identity this network element asserts on X1. It MUST equal the identifier
+      # bound into its LI certificate (Subject UID / cert-binding URN), or the
+      # ADMF's requests are refused (ETSI TS 103 221-1 clause 8.2.4).
+      neId: amf-1
+      # The ADMF responsible for this element. Only this identifier may task it:
+      # a certificate from the LI CA authenticates a peer, it does not authorise
+      # one. Empty accepts any correctly-bound ADMF.
+      admfId: ""
+      # ADMF X1 endpoint for NE-initiated fault reports; empty disables them.
+      admfUrl: ""
+      # X2 (xIRI) delivery destination, "host:port" of the MDF2.
+      mdf2: ""
+      # Purge all tasking if the ADMF goes silent this long (Go duration).
+      keepaliveTimeout: ""
+      x1:
+        port: 8443
+        # The LI system runs outside the cluster, so X1 has to be reachable from
+        # outside it. TLS MUST reach the network function unterminated: an ingress
+        # or proxy that terminates it strips the ADMF's client certificate, and
+        # both mutual authentication and the clause 8.2.4 identity check then
+        # become unenforceable.
+        serviceType: NodePort
+        # nodePort: 30843
+        # serviceAnnotations: {}
     # serviceAnnotations:
     #   external-dns.alpha.kubernetes.io/hostname: "aether-amf.tenant-site.company.com"
     podAnnotations:
@@ -629,6 +653,30 @@ config:
       enabled: false
       certSecret: smf-li-certs
       certDir: /etc/li/certs
+      # Identity this network element asserts on X1. It MUST equal the identifier
+      # bound into its LI certificate (Subject UID / cert-binding URN), or the
+      # ADMF's requests are refused (ETSI TS 103 221-1 clause 8.2.4).
+      neId: smf-1
+      # The ADMF responsible for this element. Only this identifier may task it:
+      # a certificate from the LI CA authenticates a peer, it does not authorise
+      # one. Empty accepts any correctly-bound ADMF.
+      admfId: ""
+      # ADMF X1 endpoint for NE-initiated fault reports; empty disables them.
+      admfUrl: ""
+      # X2 (xIRI) delivery destination, "host:port" of the MDF2.
+      mdf2: ""
+      # Purge all tasking if the ADMF goes silent this long (Go duration).
+      keepaliveTimeout: ""
+      x1:
+        port: 8443
+        # The LI system runs outside the cluster, so X1 has to be reachable from
+        # outside it. TLS MUST reach the network function unterminated: an ingress
+        # or proxy that terminates it strips the ADMF's client certificate, and
+        # both mutual authentication and the clause 8.2.4 identity check then
+        # become unenforceable.
+        serviceType: NodePort
+        # nodePort: 30843
+        # serviceAnnotations: {}
     podAnnotations:
       field.cattle.io/workloadMetrics: '[{"path":"/metrics","port":9089,"schema":"HTTP"}]'
     serviceType: ClusterIP
