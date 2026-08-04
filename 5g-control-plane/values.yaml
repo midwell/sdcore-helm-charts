@@ -479,6 +479,10 @@ config:
 
   amf:
     deploy: true
+    li:
+      enabled: false
+      certSecret: amf-li-certs
+      certDir: /etc/li/certs
     # serviceAnnotations:
     #   external-dns.alpha.kubernetes.io/hostname: "aether-amf.tenant-site.company.com"
     podAnnotations:
@@ -621,6 +625,10 @@ config:
 
   smf:
     deploy: true
+    li:
+      enabled: false
+      certSecret: smf-li-certs
+      certDir: /etc/li/certs
     podAnnotations:
       field.cattle.io/workloadMetrics: '[{"path":"/metrics","port":9089,"schema":"HTTP"}]'
     serviceType: ClusterIP

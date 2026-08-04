@@ -115,6 +115,13 @@ config:
       #iface:
     closedLoop: false
     closedLoopPort: 9301
+    # Lawful Interception credentials. LI is off unless an "li" block is present
+    # in the upf.jsonc config below; these only say where the X0-pre-provisioned
+    # credentials come from. They live in a Secret created out of band, so the
+    # private key never enters chart values, Helm state, or git.
+    li:
+      certSecret: upf-li-certs
+      certDir: /etc/li/certs
     cfgFiles:
       upf.jsonc:
         mode: dpdk

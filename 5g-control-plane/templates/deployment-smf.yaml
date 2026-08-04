@@ -80,6 +80,11 @@ spec:
         - name: nf-config
           mountPath: /opt
 {{ tuple "smf" . | include "5g-control-plane.certs_volume_mounts" | indent 8 }}
+        {{- if .Values.config.smf.li.enabled }}
+        - name: li-certs
+          mountPath: {{ .Values.config.smf.li.certDir | quote }}
+          readOnly: true
+        {{- end }}
       {{- if .Values.config.coreDump.enabled }}
         - name: coredump
           mountPath: /tmp/coredump
@@ -91,6 +96,12 @@ spec:
           defaultMode: 493
       - name: certs
         emptyDir: {}
+      {{- if .Values.config.smf.li.enabled }}
+      - name: li-certs
+        secret:
+          secretName: {{ .Values.config.smf.li.certSecret | quote }}
+          defaultMode: 384
+      {{- end }}
       - name: certs-src
         projected:
           sources:

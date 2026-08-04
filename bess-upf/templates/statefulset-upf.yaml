@@ -143,6 +143,10 @@ spec:
         env:
           - name: CONF_FILE
             value: /etc/bess/conf/upf.jsonc
+        {{- if hasKey (index .Values.config.upf.cfgFiles "upf.jsonc") "li" }}
+          - name: LI_X3_SOCKET_PATH
+            value: {{ index .Values.config.upf.cfgFiles "upf.jsonc" "li" "x3_sockaddr" | default "/pod-share/li_x3" | quote }}
+        {{- end }}
         {{- if .Values.config.upf.closedLoop }}
           - name: CLOSED_LOOP_SOCKET_PATH
             value: /pod-share/closedloop
@@ -212,6 +216,11 @@ spec:
             mountPath: /pod-share
           - name: configs
             mountPath: /tmp/conf
+          {{- if hasKey (index .Values.config.upf.cfgFiles "upf.jsonc") "li" }}
+          - name: li-certs
+            mountPath: {{ .Values.config.upf.li.certDir | quote }}
+            readOnly: true
+          {{- end }}
           {{- if .Values.config.upfDump.enabled }}
           - name: pfcp-dump
             mountPath: "{{ .Values.config.upfDump.dir }}"
@@ -267,6 +276,12 @@ spec:
           defaultMode: 493
       - name: shared-app
         emptyDir: {}
+    {{- if hasKey (index .Values.config.upf.cfgFiles "upf.jsonc") "li" }}
+      - name: li-certs
+        secret:
+          secretName: {{ .Values.config.upf.li.certSecret | quote }}
+          defaultMode: 384
+    {{- end }}
     {{- if .Values.config.upf.hugepage.enabled }}
       - name: hugepages
         emptyDir:
