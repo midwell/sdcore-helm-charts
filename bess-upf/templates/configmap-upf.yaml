@@ -1,4 +1,23 @@
 {{/*
+Lawful Interception is opt-in: the "li" block in upf.jsonc is what enables it. If
+it is present it must be complete, because every missing field fails *open* — the
+UPF runs healthy while intercepting nothing, or while producing content no
+mediation function can attribute, and neither is visible from outside. Catching it
+here turns a silent compliance failure into a refused deployment.
+*/}}
+{{- $upfCfg := index .Values.config.upf.cfgFiles "upf.jsonc" }}
+{{- if hasKey $upfCfg "li" }}
+{{- $li := index $upfCfg "li" }}
+{{- if hasKey $li "mdf3" }}
+{{- fail "config.upf.cfgFiles['upf.jsonc'].li.mdf3 is no longer used: X3 destinations are provisioned by the SMF's triggering function over LI_T3, so set config.smf.li.mdf3 instead and remove this key" }}
+{{- end }}
+{{- range $field := list "x3_sockaddr" "cert" "key" "ca_cert" "ne_id" "x1_listen" "tf_id" }}
+{{- if not (index $li $field) }}
+{{- fail (printf "config.upf.cfgFiles['upf.jsonc'].li.%s is required when the li block is present (x1_listen and tf_id carry the triggering interface: without them the UPF can duplicate traffic but cannot learn whose warrant it serves)" $field) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{/*
 # Copyright 2020-present Open Networking Foundation
 
 # SPDX-License-Identifier: Apache-2.0

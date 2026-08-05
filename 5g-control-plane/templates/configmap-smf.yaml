@@ -29,8 +29,22 @@ admfId accepts any correctly-bound ADMF rather than a named one.
       "cert" (printf "%s/tls.crt" .Values.config.smf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.smf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.smf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout -}}
+{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "mdf3" .Values.config.smf.li.mdf3 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout -}}
 {{- if $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
+{{- end -}}
+{{/*
+The SMF is the CC Triggering Function: it tasks the CC-POI in each UPF over LI_T3,
+so it needs that UPF's X1 endpoint and the identifier its certificate is bound to.
+Neither can be derived — the identifier is not in the URL — so they are listed per
+UPF, keyed by the N4 node address the SMF's PFCP context uses. Without an entry for
+a UPF, content it duplicates cannot be attributed to a warrant and the SMF reports
+a task issue to the LIPF instead.
+*/}}
+{{- if .Values.config.smf.li.upfTriggers -}}
+{{- $_ := .Values.config.smf.li.upfTriggers | set $li "upfTriggers" -}}
+{{- end -}}
+{{- if and .Values.config.smf.li.upfTriggers (not .Values.config.smf.li.mdf3) -}}
+{{- fail "config.smf.li.mdf3 is required when config.smf.li.upfTriggers is set: the triggering function provisions the X3 destination at each UPF, which carries no MDF3 address of its own" -}}
 {{- end -}}
 {{- $_ := $li | set $smfcfg.configuration "li" -}}
 {{- end }}

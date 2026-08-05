@@ -1,0 +1,78 @@
+{{/*
+# SPDX-FileCopyrightText: 2026 Forsway Scandinavia AB
+# SPDX-License-Identifier: Apache-2.0
+
+The UPF is a triggered Content-of-Communication POI: the SMF's triggering function
+tasks it over X1 (LI_T3), telling it which warrant each duplicated packet belongs
+to. That interface therefore has to be reachable, and this Service is what makes it
+so.
+
+Unlike the AMF's and SMF's X1 Services, this one is reached from *inside* the
+cluster — the peer is the SMF, not the external ADMF — so a ClusterIP suffices and
+nothing needs to be exposed beyond the cluster boundary.
+
+It must remain a plain Service. An ingress or any proxy that terminates TLS strips
+the triggering function's client certificate, and the identity binding that stops a
+certificate from one element tasking another (ETSI TS 103 221-1 clause 8.2.4) then
+has nothing to check.
+
+The Service name matters: the SMF dials the host in its configured x1Url, and TLS
+name verification happens before any identity check, so that host must be covered
+by this UPF's LI certificate. Set config.upf.li.x1.serviceName to whichever name
+the certificate carries.
+
+Rendered only when the UPF's own configuration contains an "li" block, so a
+deployment without Lawful Interception produces no such object.
+*/}}
+{{- $upfConfig := index .Values.config.upf.cfgFiles "upf.jsonc" }}
+{{- if hasKey $upfConfig "li" }}
+{{- $li := index $upfConfig "li" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.config.upf.li.x1.serviceName | default "upf-x1" }}
+  labels:
+{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
+{{- with .Values.config.upf.li.x1.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  type: ClusterIP
+  selector:
+{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
+  ports:
+  - name: x1
+    protocol: TCP
+    port: {{ .Values.config.upf.li.x1.port | default 8443 }}
+    targetPort: {{ .Values.config.upf.li.x1.port | default 8443 }}
+{{- if .Values.config.upf.li.x1.allowedSources }}
+---
+{{/*
+Defence in depth alongside the certificate checks: only the triggering function
+needs to reach this port.
+*/}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.config.upf.li.x1.serviceName | default "upf-x1" }}
+  labels:
+{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 6 }}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    {{- range .Values.config.upf.li.x1.allowedSources }}
+    - ipBlock:
+        cidr: {{ . }}
+    {{- end }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.config.upf.li.x1.port | default 8443 }}
+{{- end }}
+{{- end }}

@@ -122,6 +122,18 @@ config:
     li:
       certSecret: upf-li-certs
       certDir: /etc/li/certs
+      x1:
+        # The port the UPF's LI_T3 triggering interface listens on. It must match
+        # the "x1_listen" port in the upf.jsonc li block below.
+        port: 8443
+        # Name of the Service that fronts it. The SMF dials the host in its
+        # configured x1Url and TLS name verification happens before any identity
+        # check, so this must be a name the UPF's LI certificate covers.
+        serviceName: upf-x1
+        # Optional CIDRs allowed to reach the port, as a NetworkPolicy alongside
+        # the certificate checks. Empty renders no policy.
+        allowedSources: []
+        # serviceAnnotations: {}
     cfgFiles:
       upf.jsonc:
         mode: dpdk
