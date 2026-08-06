@@ -48,31 +48,32 @@ spec:
     port: {{ .Values.config.upf.li.x1.port | default 8443 }}
     targetPort: {{ .Values.config.upf.li.x1.port | default 8443 }}
 {{- if .Values.config.upf.li.x1.allowedSources }}
----
+{{- fail "config.upf.li.x1.allowedSources is no longer supported: a pod-level NetworkPolicy admitting only X1 also denies N4/PFCP, which stops the user plane. See the note in templates/service-x1.yaml." }}
+{{- end }}
+{{- end }}
+
 {{/*
-Defence in depth alongside the certificate checks: only the triggering function
-needs to reach this port.
+Deliberately no NetworkPolicy, and allowedSources refuses to render rather than
+being quietly ignored.
+
+An earlier version of this chart offered one, and it would have taken the user
+plane down. A NetworkPolicy that selects a pod isolates it for every listed
+policyType, so an Ingress policy admitting only X1 denies everything else that
+arrives on the pod's primary interface — including PFCP from the SMF, which
+reaches this pod through the "upf" ClusterIP Service on 8805/UDP. GTP-U would
+have survived, since it arrives over the Multus access/core attachments the CNI's
+policy engine does not govern, which is precisely what would have made the
+failure confusing: the datapath still up, sessions unable to be established.
+
+The exposure this was meant to mitigate is small to begin with. This Service is
+ClusterIP: the port is not reachable from outside the cluster at all, so the peer
+would have to be a workload already running inside it. Such a peer still gets
+nowhere without a certificate from the LI CA carrying the triggering function's
+identifier bound into it (TS 103 221-1 clause 8.2.4), and a peer that has one is
+past what any address filter would have decided.
+
+To restrict it further, do it where the rule cannot sever unrelated traffic: a
+CNI-level policy that names the ports this pod must keep accepting (8805/UDP from
+the SMF and whatever scrapes its metrics), maintained with the deployment rather
+than the chart.
 */}}
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: {{ .Values.config.upf.li.x1.serviceName | default "upf-x1" }}
-  labels:
-{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
-spec:
-  podSelector:
-    matchLabels:
-{{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 6 }}
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    {{- range .Values.config.upf.li.x1.allowedSources }}
-    - ipBlock:
-        cidr: {{ . }}
-    {{- end }}
-    ports:
-    - protocol: TCP
-      port: {{ .Values.config.upf.li.x1.port | default 8443 }}
-{{- end }}
-{{- end }}
