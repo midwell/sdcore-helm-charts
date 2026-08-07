@@ -598,32 +598,9 @@ config:
       admfId: ""
       # ADMF X1 endpoint for NE-initiated fault reports; empty disables them.
       admfUrl: ""
-      # X2 (xIRI) delivery destination, "host:port" of the MDF2.
+      # X2 (xIRI) delivery destination, "host:port" of the MDF2. The AMF is an
+      # IRI-POI only; mdf3/upfTriggers (content) live under smf.li, not here.
       mdf2: ""
-      # X3 (xCC) delivery destination, "host:port" of the MDF3. The SMF is the CC
-      # Triggering Function: it provisions this destination at each UPF it tasks,
-      # so the UPF carries no MDF3 address of its own. Required when upfTriggers
-      # is set.
-      mdf3: ""
-      # The LI_T3 triggering endpoint of every UPF whose content interception this
-      # SMF may trigger. Marking a session's traffic for duplication tells a UPF to
-      # copy packets; only this trigger tells it whose warrant the copies belong to,
-      # and a mediation function attributes product by warrant alone. A UPF missing
-      # from this list therefore produces content nobody can attribute, and the SMF
-      # reports that to the LIPF as a task issue rather than passing it silently.
-      #
-      #   nodeId — the UPF's N4 node address, as the SMF's PFCP context keys it
-      #   x1Url  — that UPF's X1 endpoint; the host MUST be a name or address the
-      #            UPF's own LI certificate covers, or the TLS handshake fails on
-      #            name verification before any identity check
-      #   neId   — the identifier the UPF answers to on X1, bound into that
-      #            certificate; it cannot be derived from the URL
-      #
-      # upfTriggers:
-      #   - nodeId: 10.0.1.5
-      #     x1Url: https://upf-1:8443/X1/NE
-      #     neId: upf-1
-      upfTriggers: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
       x1:
@@ -740,6 +717,35 @@ config:
       admfUrl: ""
       # X2 (xIRI) delivery destination, "host:port" of the MDF2.
       mdf2: ""
+      # X3 (xCC) delivery destination, "host:port" of the MDF3. The SMF is the CC
+      # Triggering Function: it provisions this destination at each UPF it tasks,
+      # so the UPF carries no MDF3 address of its own. Required when upfTriggers
+      # is set.
+      mdf3: ""
+      # The LI_T3 triggering endpoint of every UPF whose content interception this
+      # SMF may trigger. Marking a session's traffic for duplication tells a UPF to
+      # copy packets; only this trigger tells it whose warrant the copies belong to,
+      # and a mediation function attributes product by warrant alone. A UPF missing
+      # from this list therefore produces content nobody can attribute, and the SMF
+      # reports that to the LIPF as a task issue rather than passing it silently.
+      #
+      #   nodeId — the UPF's N4 node address. May be an IP or a DNS name (e.g. the
+      #            UPF's N4 Service name); the SMF resolves it to an IP the same way
+      #            it resolves the session's own N4 node, so the two match — no
+      #            deploy-time ClusterIP needed.
+      #   x1Url  — that UPF's X1 endpoint; the host MUST be a name or address the
+      #            UPF's own LI certificate covers, or the TLS handshake fails on
+      #            name verification before any identity check
+      #   neId   — the identifier the UPF answers to on X1, bound into that
+      #            certificate; it cannot be derived from the URL
+      #
+      # Defaults to the single standard UPF (neId upf-1, N4 Service 'upf'). Replace
+      # or extend for a renamed or multi-UPF deployment; set to [] for IRI-only
+      # (no content interception).
+      upfTriggers:
+        - neId: upf-1
+          nodeId: upf
+          x1Url: https://upf-1:8443/X1/NE
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
       x1:
@@ -750,7 +756,7 @@ config:
         # both mutual authentication and the clause 8.2.4 identity check then
         # become unenforceable.
         serviceType: NodePort
-        # nodePort: 30843
+        # nodePort: 30844
         # serviceAnnotations: {}
 
   ausf:
