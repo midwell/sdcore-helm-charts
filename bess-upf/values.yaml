@@ -115,27 +115,6 @@ config:
       #iface:
     closedLoop: false
     closedLoopPort: 9301
-    # Lawful Interception credentials. LI is off unless an "li" block is present
-    # in the upf.jsonc config below; these only say where the X0-pre-provisioned
-    # credentials come from. They live in a Secret created out of band, so the
-    # private key never enters chart values, Helm state, or git.
-    li:
-      certSecret: upf-li-certs
-      certDir: /etc/li/certs
-      x1:
-        # The port the UPF's LI_T3 triggering interface listens on. It must match
-        # the "x1_listen" port in the upf.jsonc li block below.
-        port: 8443
-        # Name of the Service that fronts it. The SMF dials the host in its
-        # configured x1Url and TLS name verification happens before any identity
-        # check, so this must be a name the UPF's LI certificate covers.
-        serviceName: upf-x1
-        # Withdrawn. It rendered a NetworkPolicy that admitted X1 and, by the
-        # isolation such a policy implies, denied N4/PFCP as well — stopping the
-        # user plane. Setting it now fails the render rather than deploying that.
-        # See templates/service-x1.yaml for what to do instead.
-        allowedSources: []
-        # serviceAnnotations: {}
     cfgFiles:
       upf.jsonc:
         mode: dpdk
@@ -173,6 +152,27 @@ config:
             pbs: 50000
             burst_duration_ms: 10
             priority: 7
+    # Lawful Interception credentials. LI is off unless an "li" block is present
+    # in the upf.jsonc config; these only say where the X0-pre-provisioned
+    # credentials come from. They live in a Secret created out of band, so the
+    # private key never enters chart values, Helm state, or git.
+    li:
+      certSecret: upf-li-certs
+      certDir: /etc/li/certs
+      x1:
+        # The port the UPF's LI_T3 triggering interface listens on. It must match
+        # the "x1_listen" port in the upf.jsonc li block below.
+        port: 8443
+        # Name of the Service that fronts it. The SMF dials the host in its
+        # configured x1Url and TLS name verification happens before any identity
+        # check, so this must be a name the UPF's LI certificate covers.
+        serviceName: upf-x1
+        # Withdrawn. It rendered a NetworkPolicy that admitted X1 and, by the
+        # isolation such a policy implies, denied N4/PFCP as well — stopping the
+        # user plane. Setting it now fails the render rather than deploying that.
+        # See templates/service-x1.yaml for what to do instead.
+        allowedSources: []
+        # serviceAnnotations: {}
 
 service:
   type: ClusterIP
