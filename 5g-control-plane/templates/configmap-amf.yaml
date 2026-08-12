@@ -43,6 +43,17 @@ admfId accepts any correctly-bound ADMF rather than a named one.
 {{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout -}}
 {{- if $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
 {{- end -}}
+{{/*
+Pre-shared delivery destinations, if any. A task naming one of these DIDs is delivered to
+it exactly as if the ADMF had provisioned it with CreateDestination — which is a supported
+arrangement, not a fallback: neither TS 103 221-1 nor TS 33.128 requires that a task's
+destination identifier arrived over X1 rather than having been agreed. A destination
+provisioned over X1 under the same DID takes precedence, and the element reports which is
+in force. `mdf2` above remains the default for a task that names nothing resolvable.
+*/}}
+{{- if .Values.config.amf.li.destinations -}}
+{{- $_ := .Values.config.amf.li.destinations | set $li "destinations" -}}
+{{- end -}}
 {{- $_ := $li | set $amfcfg.configuration "li" -}}
 {{- end }}
 

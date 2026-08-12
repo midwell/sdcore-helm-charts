@@ -601,6 +601,19 @@ config:
       # X2 (xIRI) delivery destination, "host:port" of the MDF2. The AMF is an
       # IRI-POI only; mdf3/upfTriggers (content) live under smf.li, not here.
       mdf2: ""
+      # Delivery destinations agreed out of band, as DID→endpoint entries. A task
+      # naming one of these is delivered to it exactly as if the ADMF had
+      # provisioned it with CreateDestination — a supported arrangement rather
+      # than a fallback, since neither TS 103 221-1 nor TS 33.128 requires that a
+      # task's destination identifier arrived over X1. A destination provisioned
+      # over X1 under the same DID takes precedence, and the element says which is
+      # in force in what it reports about its destinations. `mdf2` above stays the
+      # default for a task that names nothing this element can resolve.
+      #   destinations:
+      #     - did: 3f1b0e6a-6b7a-4a1e-9c2d-8f5e4d3c2b1a   # UUID, as the schema requires
+      #       deliveryType: X2Only                         # X2Only | X3Only | X2andX3
+      #       address: 10.0.60.122:42070                   # host:port
+      destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
       x1:
@@ -746,6 +759,19 @@ config:
         - neId: upf-1
           nodeId: upf
           x1Url: https://upf-1:8443/X1/NE
+      # Delivery destinations agreed out of band, as DID→endpoint entries. A task
+      # naming one of these is delivered to it exactly as if the ADMF had
+      # provisioned it with CreateDestination — a supported arrangement rather
+      # than a fallback, since neither TS 103 221-1 nor TS 33.128 requires that a
+      # task's destination identifier arrived over X1. A destination provisioned
+      # over X1 under the same DID takes precedence, and the element says which is
+      # in force in what it reports about its destinations. `mdf2` above stays the
+      # default for a task that names nothing this element can resolve.
+      #   destinations:
+      #     - did: 3f1b0e6a-6b7a-4a1e-9c2d-8f5e4d3c2b1a   # UUID, as the schema requires
+      #       deliveryType: X2Only                         # X2Only | X3Only | X2andX3
+      #       address: 10.0.60.122:42070                   # host:port
+      destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
       x1:

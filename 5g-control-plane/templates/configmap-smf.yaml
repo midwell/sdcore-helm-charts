@@ -46,6 +46,17 @@ a task issue to the LIPF instead.
 {{- if and .Values.config.smf.li.upfTriggers (not .Values.config.smf.li.mdf3) -}}
 {{- fail "config.smf.li.mdf3 is required when config.smf.li.upfTriggers is set: the triggering function provisions the X3 destination at each UPF, which carries no MDF3 address of its own" -}}
 {{- end -}}
+{{/*
+Pre-shared delivery destinations, if any. A task naming one of these DIDs is delivered to
+it exactly as if the ADMF had provisioned it with CreateDestination — which is a supported
+arrangement, not a fallback: neither TS 103 221-1 nor TS 33.128 requires that a task's
+destination identifier arrived over X1 rather than having been agreed. A destination
+provisioned over X1 under the same DID takes precedence, and the element reports which is
+in force. `mdf2` above remains the default for a task that names nothing resolvable.
+*/}}
+{{- if .Values.config.smf.li.destinations -}}
+{{- $_ := .Values.config.smf.li.destinations | set $li "destinations" -}}
+{{- end -}}
 {{- $_ := $li | set $smfcfg.configuration "li" -}}
 {{- end }}
 
