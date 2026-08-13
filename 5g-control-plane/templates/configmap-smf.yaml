@@ -21,6 +21,12 @@ the deployment, and x1Listen matches the port the X1 Service exposes, so enablin
 LI needs no second place to keep in step. Optional fields are set only when
 configured: an empty admfUrl leaves NE-initiated fault reporting off, and an empty
 admfId accepts any correctly-bound ADMF rather than a named one.
+
+"Configured" is `or (kindIs "bool" $v) $v` rather than plain `$v`, because the last
+two keys are booleans and `if $v` is false for `false` — an operator withholding
+permission for a bulk operation would have had the key silently dropped, leaving the
+element performing it. For every string key the two tests agree: an unset string is
+empty, which is falsey and not of kind bool, so nothing already here moves.
 */}}
 {{- if and .Values.config.smf.li.enabled (not (hasKey $smfcfg.configuration "li")) -}}
 {{- $li := dict
@@ -29,8 +35,8 @@ admfId accepts any correctly-bound ADMF rather than a named one.
       "cert" (printf "%s/tls.crt" .Values.config.smf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.smf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.smf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "mdf3" .Values.config.smf.li.mdf3 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout -}}
-{{- if $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
+{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "mdf3" .Values.config.smf.li.mdf3 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout "deactivateAllTasks" .Values.config.smf.li.deactivateAllTasks "removeAllDestinations" .Values.config.smf.li.removeAllDestinations -}}
+{{- if or (kindIs "bool" $v) $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
 {{- end -}}
 {{/*
 The SMF is the CC Triggering Function: it tasks the CC-POI in each UPF over LI_T3,

@@ -156,6 +156,21 @@ config:
     # in the upf.jsonc config; these only say where the X0-pre-provisioned
     # credentials come from. They live in a Secret created out of band, so the
     # private key never enters chart values, Helm state, or git.
+    #
+    # That upf.jsonc "li" block also takes two optional keys, which ETSI TS 103 221-1
+    # leaves to advance agreement rather than settling itself. Omitted, they give the
+    # standard's own defaults: DeactivateAllTasks is performed, RemoveAllDestinations
+    # is refused.
+    #
+    #   deactivate_all_tasks: false
+    #   remove_all_destinations: false
+    #
+    # Both are recommended on the UPF, and they are the one element where this project
+    # recommends anything: its X1 peer is this deployment's own SMF acting as CC
+    # Triggering Function, and no triggering function this project ships sends either
+    # message. Disabling them removes an unused capability from an interface reachable
+    # by anyone holding an SMF-bound LI certificate, and cannot break content
+    # interception. See li/README.md.
     li:
       certSecret: upf-li-certs
       certDir: /etc/li/certs

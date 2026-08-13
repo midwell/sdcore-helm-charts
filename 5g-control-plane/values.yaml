@@ -616,6 +616,21 @@ config:
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
+      # The two bulk operations ETSI TS 103 221-1 leaves to advance agreement between
+      # the operator and the agency, rather than settling itself. Unset — as shipped —
+      # is the standard's own "no agreement in advance", and gives the standard's own
+      # defaults: DeactivateAllTasks is performed, RemoveAllDestinations is refused.
+      # Set either only to honour an agreement that says otherwise.
+      #
+      # deactivateAllTasks: false makes this element refuse to stop every interception
+      # it holds on one authenticated message. It is visible to your ADMF, which starts
+      # receiving error 5010 where it previously received an acknowledgement.
+      #
+      # This project has no view on what your agency agreed; see li/README.md for what
+      # each setting does. (The UPF is the exception — hardening it is recommended
+      # there, because no triggering function this project ships sends either message.)
+      deactivateAllTasks:
+      removeAllDestinations:
       x1:
         port: 8443
         # The LI system runs outside the cluster, so X1 has to be reachable from
@@ -774,6 +789,21 @@ config:
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
+      # The two bulk operations ETSI TS 103 221-1 leaves to advance agreement between
+      # the operator and the agency, rather than settling itself. Unset — as shipped —
+      # is the standard's own "no agreement in advance", and gives the standard's own
+      # defaults: DeactivateAllTasks is performed, RemoveAllDestinations is refused.
+      # Set either only to honour an agreement that says otherwise.
+      #
+      # deactivateAllTasks: false makes this element refuse to stop every interception
+      # it holds on one authenticated message. It is visible to your ADMF, which starts
+      # receiving error 5010 where it previously received an acknowledgement.
+      #
+      # This project has no view on what your agency agreed; see li/README.md for what
+      # each setting does. (The UPF is the exception — hardening it is recommended
+      # there, because no triggering function this project ships sends either message.)
+      deactivateAllTasks:
+      removeAllDestinations:
       x1:
         port: 8443
         # The LI system runs outside the cluster, so X1 has to be reachable from

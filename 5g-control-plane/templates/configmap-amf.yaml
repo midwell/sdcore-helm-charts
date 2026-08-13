@@ -32,6 +32,12 @@ the deployment, and x1Listen matches the port the X1 Service exposes, so enablin
 LI needs no second place to keep in step. Optional fields are set only when
 configured: an empty admfUrl leaves NE-initiated fault reporting off, and an empty
 admfId accepts any correctly-bound ADMF rather than a named one.
+
+"Configured" is `or (kindIs "bool" $v) $v` rather than plain `$v`, because the last
+two keys are booleans and `if $v` is false for `false` — an operator withholding
+permission for a bulk operation would have had the key silently dropped, leaving the
+element performing it. For every string key the two tests agree: an unset string is
+empty, which is falsey and not of kind bool, so nothing already here moves.
 */}}
 {{- if and .Values.config.amf.li.enabled (not (hasKey $amfcfg.configuration "li")) -}}
 {{- $li := dict
@@ -40,8 +46,8 @@ admfId accepts any correctly-bound ADMF rather than a named one.
       "cert" (printf "%s/tls.crt" .Values.config.amf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.amf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.amf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout -}}
-{{- if $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
+{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout "deactivateAllTasks" .Values.config.amf.li.deactivateAllTasks "removeAllDestinations" .Values.config.amf.li.removeAllDestinations -}}
+{{- if or (kindIs "bool" $v) $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
 {{- end -}}
 {{/*
 Pre-shared delivery destinations, if any. A task naming one of these DIDs is delivered to
