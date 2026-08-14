@@ -616,6 +616,24 @@ config:
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
+      # The X2/X3 keepalive of ETSI TS 103 221-2 clause 6.2.4 — a different mechanism
+      # from keepaliveTimeout above, which is the X1 fail-safe. This one proves the
+      # mediation function is still running: the element sends a Keepalive every
+      # TIME_P1 and disconnects, reconnects and reports a fault if nothing
+      # acknowledges within TIME_P2.
+      #
+      # Unset is the specification's own behaviour — enabled, 60 s and 180 s — and is
+      # what a deployment should ship with. TIME_P2 must exceed TIME_P1 or the element
+      # refuses the pair and falls back to the defaults, reporting invalidConfig.
+      #
+      # Set x2x3KeepaliveEnabled: false only for a mediation function that does not
+      # implement the MDF half of the clause and therefore never acknowledges. Such a
+      # peer would otherwise be disconnected every TIME_P2, losing whatever was in
+      # flight each time. The sipgate reference simulator this project interoperates
+      # with is one: probed 2026-08-14, it answers no Keepalive at all.
+      x2x3KeepaliveEnabled: ""
+      x2x3KeepaliveTimeP1: ""
+      x2x3KeepaliveTimeP2: ""
       # The two bulk operations ETSI TS 103 221-1 leaves to advance agreement between
       # the operator and the agency, rather than settling itself. Unset — as shipped —
       # is the standard's own "no agreement in advance", and gives the standard's own
@@ -789,6 +807,24 @@ config:
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
+      # The X2/X3 keepalive of ETSI TS 103 221-2 clause 6.2.4 — a different mechanism
+      # from keepaliveTimeout above, which is the X1 fail-safe. This one proves the
+      # mediation function is still running: the element sends a Keepalive every
+      # TIME_P1 and disconnects, reconnects and reports a fault if nothing
+      # acknowledges within TIME_P2.
+      #
+      # Unset is the specification's own behaviour — enabled, 60 s and 180 s — and is
+      # what a deployment should ship with. TIME_P2 must exceed TIME_P1 or the element
+      # refuses the pair and falls back to the defaults, reporting invalidConfig.
+      #
+      # Set x2x3KeepaliveEnabled: false only for a mediation function that does not
+      # implement the MDF half of the clause and therefore never acknowledges. Such a
+      # peer would otherwise be disconnected every TIME_P2, losing whatever was in
+      # flight each time. The sipgate reference simulator this project interoperates
+      # with is one: probed 2026-08-14, it answers no Keepalive at all.
+      x2x3KeepaliveEnabled: ""
+      x2x3KeepaliveTimeP1: ""
+      x2x3KeepaliveTimeP2: ""
       # The two bulk operations ETSI TS 103 221-1 leaves to advance agreement between
       # the operator and the agency, rather than settling itself. Unset — as shipped —
       # is the standard's own "no agreement in advance", and gives the standard's own

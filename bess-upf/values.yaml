@@ -165,6 +165,24 @@ config:
     #   deactivate_all_tasks: false
     #   remove_all_destinations: false
     #
+    # It also takes the X2/X3 keepalive of ETSI TS 103 221-2 clause 6.2.4, which proves
+    # the mediation function receiving X3 is still running: the shipper sends a
+    # Keepalive every TIME_P1 and disconnects, reconnects and reports a fault if
+    # nothing acknowledges within TIME_P2. Omitted, they give the specification's own
+    # behaviour — enabled, 60 s and 180 s — which is what a deployment should ship
+    # with. Unlike the control plane, this element refuses an unusable pair outright
+    # rather than falling back, so TIME_P2 must exceed TIME_P1 or the UPF will not
+    # start.
+    #
+    #   x2x3_keepalive_enabled: false   # only for an MDF that never acknowledges
+    #   x2x3_keepalive_time_p1: "60s"
+    #   x2x3_keepalive_time_p2: "180s"
+    #
+    # Setting enabled to false is for a mediation function that does not implement the
+    # MDF half of the clause: it would otherwise be disconnected every TIME_P2, losing
+    # whatever was in flight each time. The sipgate reference simulator this project
+    # interoperates with is one — probed 2026-08-14, it answers no Keepalive at all.
+    #
     # Both are recommended on the UPF, and they are the one element where this project
     # recommends anything: its X1 peer is this deployment's own SMF acting as CC
     # Triggering Function, and no triggering function this project ships sends either

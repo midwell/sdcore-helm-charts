@@ -46,7 +46,7 @@ empty, which is falsey and not of kind bool, so nothing already here moves.
       "cert" (printf "%s/tls.crt" .Values.config.amf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.amf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.amf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout "deactivateAllTasks" .Values.config.amf.li.deactivateAllTasks "removeAllDestinations" .Values.config.amf.li.removeAllDestinations -}}
+{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout "x2x3KeepaliveEnabled" .Values.config.amf.li.x2x3KeepaliveEnabled "x2x3KeepaliveTimeP1" .Values.config.amf.li.x2x3KeepaliveTimeP1 "x2x3KeepaliveTimeP2" .Values.config.amf.li.x2x3KeepaliveTimeP2 "deactivateAllTasks" .Values.config.amf.li.deactivateAllTasks "removeAllDestinations" .Values.config.amf.li.removeAllDestinations -}}
 {{- if or (kindIs "bool" $v) $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
 {{- end -}}
 {{/*

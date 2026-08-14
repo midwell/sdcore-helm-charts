@@ -35,7 +35,7 @@ empty, which is falsey and not of kind bool, so nothing already here moves.
       "cert" (printf "%s/tls.crt" .Values.config.smf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.smf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.smf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "mdf3" .Values.config.smf.li.mdf3 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout "deactivateAllTasks" .Values.config.smf.li.deactivateAllTasks "removeAllDestinations" .Values.config.smf.li.removeAllDestinations -}}
+{{- range $k, $v := dict "mdf2" .Values.config.smf.li.mdf2 "mdf3" .Values.config.smf.li.mdf3 "admfUrl" .Values.config.smf.li.admfUrl "admfId" .Values.config.smf.li.admfId "keepaliveTimeout" .Values.config.smf.li.keepaliveTimeout "x2x3KeepaliveEnabled" .Values.config.smf.li.x2x3KeepaliveEnabled "x2x3KeepaliveTimeP1" .Values.config.smf.li.x2x3KeepaliveTimeP1 "x2x3KeepaliveTimeP2" .Values.config.smf.li.x2x3KeepaliveTimeP2 "deactivateAllTasks" .Values.config.smf.li.deactivateAllTasks "removeAllDestinations" .Values.config.smf.li.removeAllDestinations -}}
 {{- if or (kindIs "bool" $v) $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
 {{- end -}}
 {{/*
