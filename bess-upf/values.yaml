@@ -157,13 +157,18 @@ config:
     # credentials come from. They live in a Secret created out of band, so the
     # private key never enters chart values, Helm state, or git.
     #
-    # That upf.jsonc "li" block also takes two optional keys, which ETSI TS 103 221-1
-    # leaves to advance agreement rather than settling itself. Omitted, they give the
-    # standard's own defaults: DeactivateAllTasks is performed, RemoveAllDestinations
-    # is refused.
+    # That upf.jsonc "li" block also takes the two bulk operations ETSI TS 103 221-1
+    # leaves to advance agreement rather than settling itself.
     #
-    #   deactivate_all_tasks: false
-    #   remove_all_destinations: false
+    # **This chart already sets deactivate_all_tasks: false for you** when the li block
+    # is present and you have not set it — see templates/configmap-upf.yaml for why.
+    # It is in the rendered ConfigMap, not here, because there is no li block to default
+    # it into until you add one. Set it explicitly to override, in either direction:
+    #
+    #   deactivate_all_tasks: true    # a triggering function that does send bulk messages
+    #
+    # remove_all_destinations needs nothing: unset already means refused, which is what
+    # the recommendation asks for, so setting it false would change no behaviour.
     #
     # It also takes the X2/X3 keepalive of ETSI TS 103 221-2 clause 6.2.4, which proves
     # the mediation function receiving X3 is still running: the shipper sends a
@@ -182,13 +187,6 @@ config:
     # MDF half of the clause: it would otherwise be disconnected every TIME_P2, losing
     # whatever was in flight each time. The sipgate reference simulator this project
     # interoperates with is one — probed 2026-08-14, it answers no Keepalive at all.
-    #
-    # Both are recommended on the UPF, and they are the one element where this project
-    # recommends anything: its X1 peer is this deployment's own SMF acting as CC
-    # Triggering Function, and no triggering function this project ships sends either
-    # message. Disabling them removes an unused capability from an interface reachable
-    # by anyone holding an SMF-bound LI certificate, and cannot break content
-    # interception. See li/README.md.
     li:
       certSecret: upf-li-certs
       certDir: /etc/li/certs

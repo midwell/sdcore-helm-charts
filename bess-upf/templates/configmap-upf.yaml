@@ -11,6 +11,25 @@ here turns a silent compliance failure into a refused deployment.
 {{- if hasKey $li "mdf3" }}
 {{- fail "config.upf.cfgFiles['upf.jsonc'].li.mdf3 is no longer used: X3 destinations are provisioned by the SMF's triggering function over LI_T3, so set config.smf.li.mdf3 instead and remove this key" }}
 {{- end }}
+{{/*
+Bulk deactivation is refused on the UPF unless the operator says otherwise.
+
+This element's X1 peer is the deployment's own SMF acting as CC Triggering Function, and
+no triggering function this project ships sends a bulk message: withdrawal fans out as one
+DeactivateTask per XID. So refusing DeactivateAllTasks closes a capability nothing uses on
+an interface reachable by anyone holding an SMF-bound LI certificate, and cannot interfere
+with stopping interception.
+
+The key is defaulted here rather than in values.yaml because there is no li block to carry
+it — LI is off until an operator adds one. Setting it in values wins, in either direction:
+a deployment whose triggering function does send bulk messages sets it true.
+
+The AMF and SMF get no such default. Their peer is an agency's ADMF, the policy follows an
+agreement this project is not party to, and their unset state is the specification's own.
+*/}}
+{{- if not (hasKey $li "deactivate_all_tasks") }}
+{{- $_ := set $li "deactivate_all_tasks" false }}
+{{- end }}
 {{- range $field := list "x3_sockaddr" "cert" "key" "ca_cert" "ne_id" "x1_listen" "tf_id" }}
 {{- if not (index $li $field) }}
 {{- fail (printf "config.upf.cfgFiles['upf.jsonc'].li.%s is required when the li block is present (x1_listen and tf_id carry the triggering interface: without them the UPF can duplicate traffic but cannot learn whose warrant it serves)" $field) }}
