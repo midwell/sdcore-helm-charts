@@ -12,6 +12,7 @@ clean: # @HELP clean up temporary files for omec-control-plane
 
 test: # @HELP run the acceptance tests
 		helm dep update omec-control-plane
+		./hack/check-li-endpoint-defaults.sh
 
 help:
 	@grep -E '^.*: *# *@HELP' $(MAKEFILE_LIST) \

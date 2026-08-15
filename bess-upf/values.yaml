@@ -197,7 +197,15 @@ config:
         # Name of the Service that fronts it. The SMF dials the host in its
         # configured x1Url and TLS name verification happens before any identity
         # check, so this must be a name the UPF's LI certificate covers.
-        serviceName: upf-x1
+        #
+        # It must also be the host in the control plane's own default —
+        # 5g-control-plane's config.smf.cfgFiles."smf.yaml".configuration.li
+        # .upfTriggers[].x1Url, which is https://upf-1:8443/X1/NE. The two charts
+        # are installed separately and nothing checks them against each other, so
+        # a disagreement here is not a render error: it is a CC triggering
+        # function whose every trigger and every withdrawal fails, permanently,
+        # against an endpoint that never existed. Rename one and rename the other.
+        serviceName: upf-1
         # Withdrawn. It rendered a NetworkPolicy that admitted X1 and, by the
         # isolation such a policy implies, denied N4/PFCP as well — stopping the
         # user plane. Setting it now fails the render rather than deploying that.

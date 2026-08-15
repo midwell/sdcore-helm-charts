@@ -19,7 +19,10 @@ has nothing to check.
 The Service name matters: the SMF dials the host in its configured x1Url, and TLS
 name verification happens before any identity check, so that host must be covered
 by this UPF's LI certificate. Set config.upf.li.x1.serviceName to whichever name
-the certificate carries.
+the certificate carries — and to whichever name the SMF dials, which by default is
+the "upf-1" in 5g-control-plane's upfTriggers[].x1Url. The two charts install
+separately, so nothing here can check that; a disagreement renders perfectly and
+leaves a triggering function that can never reach its POI.
 
 Rendered only when the UPF's own configuration contains an "li" block, so a
 deployment without Lawful Interception produces no such object.
@@ -31,7 +34,7 @@ deployment without Lawful Interception produces no such object.
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.config.upf.li.x1.serviceName | default "upf-x1" }}
+  name: {{ .Values.config.upf.li.x1.serviceName | default "upf-1" }}
   labels:
 {{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
 {{- with .Values.config.upf.li.x1.serviceAnnotations }}

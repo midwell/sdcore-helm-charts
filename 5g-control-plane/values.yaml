@@ -788,6 +788,12 @@ config:
       # Defaults to the single standard UPF (neId upf-1, N4 Service 'upf'). Replace
       # or extend for a renamed or multi-UPF deployment; set to [] for IRI-only
       # (no content interception).
+      #
+      # The x1Url host must be the name of the UPF's X1 Service — bess-upf's
+      # config.upf.li.x1.serviceName, which defaults to the "upf-1" below. The two
+      # charts install separately and nothing reconciles them, so a disagreement
+      # deploys cleanly and leaves this triggering function unable to task or
+      # untask its POI at all.
       upfTriggers:
         - neId: upf-1
           nodeId: upf
