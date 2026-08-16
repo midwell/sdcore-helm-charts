@@ -26,8 +26,8 @@ config:
   smf:
     li:
       enabled: true
-      mdf2: "10.0.60.122:42069"
-      mdf3: "10.0.60.122:42070"
+      mdf2: "10.0.11.12:42069"
+      mdf3: "10.0.11.12:42070"
 EOF
 
 cat >"$work/upf.yaml" <<'EOF'

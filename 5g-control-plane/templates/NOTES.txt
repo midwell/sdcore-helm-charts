@@ -7,3 +7,28 @@
 */ -}}
 
 Notes - Instructions to use 5g helm charts
+
+{{- $liOn := or (and .Values.config.smf.li .Values.config.smf.li.enabled) (and .Values.config.amf.li .Values.config.amf.li.enabled) }}
+{{- if $liOn }}
+{{- $noAdmfUrl := list }}
+{{- if and .Values.config.smf.li .Values.config.smf.li.enabled (not .Values.config.smf.li.admfUrl) }}{{ $noAdmfUrl = append $noAdmfUrl "smf" }}{{ end }}
+{{- if and .Values.config.amf.li .Values.config.amf.li.enabled (not .Values.config.amf.li.admfUrl) }}{{ $noAdmfUrl = append $noAdmfUrl "amf" }}{{ end }}
+{{- if $noAdmfUrl }}
+
+WARNING: lawful interception is enabled on {{ join ", " $noAdmfUrl }} with no admfUrl.
+
+  NE-initiated fault reporting is off for {{ if gt (len $noAdmfUrl) 1 }}those elements{{ else }}that element{{ end }}. That is a
+  supported configuration, not an error — but it is worth stating explicitly,
+  because of what it combines with. Interception is required to be undetectable,
+  so these elements deliberately keep LI conditions out of the general operator
+  log; X1 is the only channel they have for reporting a fault. With no admfUrl
+  there is no channel at all.
+
+  A mismatched NE identifier, a certificate binding the ADMF does not accept, or
+  an unreachable mediation function will then stop interception from ever starting
+  and tell nobody: the agency waits on a warrant that yields nothing, which looks
+  exactly like a subject who did nothing.
+
+  Set config.<nf>.li.admfUrl to the ADMF's X1 endpoint to enable reporting.
+{{- end }}
+{{- end }}

@@ -612,7 +612,7 @@ config:
       #   destinations:
       #     - did: 3f1b0e6a-6b7a-4a1e-9c2d-8f5e4d3c2b1a   # UUID, as the schema requires
       #       deliveryType: X2Only                         # X2Only | X3Only | X2andX3
-      #       address: 10.0.60.122:42070                   # host:port
+      #       address: 10.0.11.12:42070                   # host:port
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
@@ -809,7 +809,7 @@ config:
       #   destinations:
       #     - did: 3f1b0e6a-6b7a-4a1e-9c2d-8f5e4d3c2b1a   # UUID, as the schema requires
       #       deliveryType: X2Only                         # X2Only | X3Only | X2andX3
-      #       address: 10.0.60.122:42070                   # host:port
+      #       address: 10.0.11.12:42070                   # host:port
       destinations: []
       # Purge all tasking if the ADMF goes silent this long (Go duration).
       keepaliveTimeout: ""
