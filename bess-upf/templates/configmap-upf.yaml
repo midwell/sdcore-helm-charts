@@ -8,6 +8,17 @@ here turns a silent compliance failure into a refused deployment.
 {{- $upfCfg := index .Values.config.upf.cfgFiles "upf.jsonc" }}
 {{- if hasKey $upfCfg "li" }}
 {{- $li := index $upfCfg "li" }}
+{{/*
+Refuse an unusable Lawful Interception timer before anything is deployed. See
+_li-duration.tpl for why this belongs here as well as in the element: the UPF now
+declines to start interception over such a value rather than refusing to run, which is
+right at runtime and leaves the mistake worth catching earlier for free.
+*/}}
+{{- range $key := list "trigger_keepalive" "x2x3_keepalive_time_p1" "x2x3_keepalive_time_p2" }}
+{{- if hasKey $li $key }}
+{{- include "omec-user-plane.li.checkDuration" (dict "value" (index $li $key) "key" (printf "config.upf.cfgFiles['upf.jsonc'].li.%s" $key)) }}
+{{- end }}
+{{- end }}
 {{- if hasKey $li "mdf3" }}
 {{- fail "config.upf.cfgFiles['upf.jsonc'].li.mdf3 is no longer used: X3 destinations are provisioned by the SMF's triggering function over LI_T3, so set config.smf.li.mdf3 instead and remove this key" }}
 {{- end }}

@@ -27,6 +27,23 @@
 {{- end }}
 
 {{/*
+Refuse an unusable Lawful Interception timer before anything is deployed. See
+_li-duration.tpl for why this belongs here as well as in the element.
+
+Gated on li.enabled, because a value that is not read cannot be wrong: a deployment with
+interception off and a stale timer left in its values must not be refused for a setting
+that reaches no element.
+*/}}
+{{- if .Values.config.amf.li.enabled -}}
+{{- range $key, $value := dict
+      "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout
+      "x2x3KeepaliveTimeP1" .Values.config.amf.li.x2x3KeepaliveTimeP1
+      "x2x3KeepaliveTimeP2" .Values.config.amf.li.x2x3KeepaliveTimeP2 -}}
+{{- include "5g-control-plane.li.checkDuration" (dict "value" $value "key" (printf "config.amf.li.%s" $key)) -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Lawful Interception. The credential paths follow the Secret mounted at certDir by
 the deployment, and x1Listen matches the port the X1 Service exposes, so enabling
 LI needs no second place to keep in step. Optional fields are set only when
