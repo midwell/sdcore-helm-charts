@@ -1,0 +1,43 @@
+{{- /*
+
+# SPDX-FileCopyrightText: 2026 Forsway Scandinavia AB
+# SPDX-License-Identifier: Apache-2.0
+
+*/ -}}
+
+Notes - Instructions to use the bess-upf chart
+
+{{- $upfCfg := index .Values.config.upf.cfgFiles "upf.jsonc" }}
+{{- if hasKey $upfCfg "li" }}
+{{- $li := index $upfCfg "li" }}
+{{- if not (index $li "admf_url") }}
+
+WARNING: lawful interception is enabled on the UPF with no admf_url.
+
+  NE-initiated fault reporting is off for this element. That is a supported
+  configuration, not an error — the same one the 5g-control-plane chart warns
+  about for the AMF and SMF — but it is worth stating explicitly, because of
+  what it combines with.
+
+  Interception is required to be undetectable, so this element deliberately
+  keeps LI conditions out of the general operator log; X1 is the only channel
+  it has for reporting a fault. With no admf_url there is no channel at all,
+  and every fault this CC-POI can raise becomes a no-op: content dropped
+  before framing, an X3 egress socket that never came up, a mediation function
+  it cannot reach, a duplication rule the datapath refused, content it was
+  told to duplicate for a session no task covers.
+
+  Each of those is an interception that is authorised and producing nothing,
+  and none of them is visible from outside this element: the triggering
+  function believes the trigger is installed, the agency waits on a warrant
+  that yields nothing, and that looks exactly like a subject who did nothing.
+
+  Set config.upf.cfgFiles['upf.jsonc'].li.admf_url to the ADMF's X1 endpoint,
+  and admf_id to the identifier its certificate binds.
+
+  A warning rather than a refused render, because the field is genuinely
+  optional: an element with no reporting channel still intercepts. The
+  required fields — without which interception cannot work at all — are
+  checked in configmap-upf.yaml and fail the render instead.
+{{- end }}
+{{- end }}

@@ -63,8 +63,21 @@ empty, which is falsey and not of kind bool, so nothing already here moves.
       "cert" (printf "%s/tls.crt" .Values.config.amf.li.certDir)
       "key" (printf "%s/tls.key" .Values.config.amf.li.certDir)
       "caCert" (printf "%s/ca.crt" .Values.config.amf.li.certDir) -}}
-{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout "x2x3KeepaliveEnabled" .Values.config.amf.li.x2x3KeepaliveEnabled "x2x3KeepaliveTimeP1" .Values.config.amf.li.x2x3KeepaliveTimeP1 "x2x3KeepaliveTimeP2" .Values.config.amf.li.x2x3KeepaliveTimeP2 "deactivateAllTasks" .Values.config.amf.li.deactivateAllTasks "removeAllDestinations" .Values.config.amf.li.removeAllDestinations -}}
+{{- range $k, $v := dict "mdf2" .Values.config.amf.li.mdf2 "admfUrl" .Values.config.amf.li.admfUrl "admfId" .Values.config.amf.li.admfId "keepaliveTimeout" .Values.config.amf.li.keepaliveTimeout "x2x3KeepaliveTimeP1" .Values.config.amf.li.x2x3KeepaliveTimeP1 "x2x3KeepaliveTimeP2" .Values.config.amf.li.x2x3KeepaliveTimeP2 -}}
 {{- if or (kindIs "bool" $v) $v -}}{{- $_ := $v | set $li $k -}}{{- end -}}
+{{- end -}}
+{{/*
+The three tri-state booleans are handled apart from the sweep above, because for them
+the operator's *spelling* has to be checked rather than only their presence. See
+_li-tristate.tpl: an empty-string default invites a quoted replacement, a quoted
+boolean is a YAML string, and a YAML string where the element declares a *bool fails
+the whole configuration load — the network function crashlooping over a lawful
+interception key, which is the one cost an LI mistake may never have.
+*/}}
+{{- range $k, $v := dict "x2x3KeepaliveEnabled" .Values.config.amf.li.x2x3KeepaliveEnabled "deactivateAllTasks" .Values.config.amf.li.deactivateAllTasks "removeAllDestinations" .Values.config.amf.li.removeAllDestinations -}}
+{{- $b := include "5g-control-plane.li.triStateBool" (dict "value" $v "key" (printf "config.amf.li.%s" $k)) -}}
+{{- if eq $b "true" -}}{{- $_ := set $li $k true -}}{{- end -}}
+{{- if eq $b "false" -}}{{- $_ := set $li $k false -}}{{- end -}}
 {{- end -}}
 {{/*
 Pre-shared delivery destinations, if any. A task naming one of these DIDs is delivered to

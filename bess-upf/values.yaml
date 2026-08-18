@@ -157,6 +157,21 @@ config:
     # credentials come from. They live in a Secret created out of band, so the
     # private key never enters chart values, Helm state, or git.
     #
+    # **admf_url and admf_id belong in that li block, and nothing enforces them.**
+    # They are where this element reports its own faults over X1, and X1 is the only
+    # channel it has: interception must be undetectable, so LI conditions are kept out
+    # of the general operator log by design. Without admf_url every fault this CC-POI
+    # can raise is a no-op — content dropped before framing, an X3 egress that never
+    # came up, a mediation function it cannot reach, a duplication rule the datapath
+    # refused — and each of those is an authorised interception producing nothing that
+    # no party outside this element can see. The chart prints a warning rather than
+    # refusing the render, because an element with no reporting channel does still
+    # intercept; the fields interception cannot work at all without are checked in
+    # templates/configmap-upf.yaml and fail the render.
+    #
+    #   admf_url: https://admf-1:9443/X1/ADMF   # the ADMF's X1 endpoint
+    #   admf_id: admf-1                          # the identifier its certificate binds
+    #
     # That upf.jsonc "li" block also takes the two bulk operations ETSI TS 103 221-1
     # leaves to advance agreement rather than settling itself.
     #
