@@ -84,4 +84,26 @@ done
 helm template cp 5g-control-plane --set-string config.amf.li.x2x3KeepaliveEnabled=maybe >/dev/null 2>&1 ||
 	fail "an unusable boolean blocked a render with LI disabled"
 
-echo "check-li-tristate: the LI tri-state booleans render as booleans, and non-booleans are refused"
+# ── Two triggering endpoints may not share an neId ──
+#
+# The consequence is invisible from either UPF — each numbers its own product correctly —
+# and lands at the mediation function as duplicated sequence numbers and apparent gaps,
+# which is how loss is signalled on that interface. The SMF refuses such a configuration
+# at startup; refusing it here catches it while nothing is deployed.
+trigger_args() {
+	local a_ne=$1 b_ne=$2
+	echo "--set config.smf.li.upfTriggers[0].nodeId=upf-a --set config.smf.li.upfTriggers[0].neId=${a_ne} --set config.smf.li.upfTriggers[0].x1Url=https://a:8443/X1/NE --set config.smf.li.upfTriggers[1].nodeId=upf-b --set config.smf.li.upfTriggers[1].neId=${b_ne} --set config.smf.li.upfTriggers[1].x1Url=https://b:8443/X1/NE"
+}
+
+# shellcheck disable=SC2046 # the args are deliberately word-split
+out=$(render smf $(trigger_args upf-1 upf-1) || true)
+grep -q "share neId" <<<"$out" ||
+	fail "two triggering endpoints sharing an neId were accepted: $out"
+
+# shellcheck disable=SC2046
+out=$(render smf $(trigger_args upf-1 upf-2)) ||
+	fail "two properly distinguished triggering endpoints were refused: $out"
+grep -q "neId: upf-2" <<<"$out" ||
+	fail "a valid two-UPF trigger list did not render"
+
+echo "check-li-tristate: the LI tri-state booleans render as booleans, non-booleans are refused, and two points of interception cannot share an neId"
