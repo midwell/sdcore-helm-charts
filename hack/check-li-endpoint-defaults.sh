@@ -21,6 +21,26 @@ cd "$(dirname "$0")/.."
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
+# ensure_deps renders a chart untouched, and fetches its subcharts if that is what is
+# missing. `helm template` refuses to render at all while a dependency named in Chart.yaml
+# is absent from charts/, and charts/ is not in the repository — so on a clean clone,
+# which is what CI has, this script failed before reaching anything it tests, and took
+# `make test` with it. The other two LI checks carry this guard; this one did not.
+ensure_deps() {
+	local chart=$1
+	helm template preflight "$chart" >/dev/null 2>&1 && return 0
+
+	helm dependency build "$chart" >/dev/null 2>&1 || true
+
+	local out
+	out=$(helm template preflight "$chart" 2>&1) && return 0
+	echo "check-li-endpoint-defaults: $chart does not render even untouched, so nothing below would be testing the LI endpoints: $out" >&2
+	exit 1
+}
+
+ensure_deps 5g-control-plane
+ensure_deps bess-upf
+
 cat >"$work/cp.yaml" <<'EOF'
 config:
   smf:
