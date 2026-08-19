@@ -106,4 +106,129 @@ out=$(render smf $(trigger_args upf-1 upf-2)) ||
 grep -q "neId: upf-2" <<<"$out" ||
 	fail "a valid two-UPF trigger list did not render"
 
-echo "check-li-tristate: the LI tri-state booleans render as booleans, non-booleans are refused, and two points of interception cannot share an neId"
+# ── bess-upf: the same four keys on the user plane ──
+#
+# A separate chart with a separate template, and the failure it prevents is worse: the UPF's
+# configuration is JSON, so a quoted boolean is not merely the wrong type — `encoding/json`
+# refuses the whole document, and the user plane does not start. x3_rcvbuf is here for the
+# same reason in the other direction: it is an int, and the same --set-string that protects a
+# boolean from Helm's coercion turns a buffer size into a string.
+#
+# The block is hand-written in values rather than assembled from typed keys, which is why
+# these are checked at all: an operator writing the block gets it passed through, so the
+# chart is the only place a spelling mistake can be caught before the element refuses to
+# start over it.
+ensure_deps bess-upf
+
+upfbase=$(mktemp -d)/upf.yaml
+cat >"$upfbase" <<'YAML'
+config:
+  upf:
+    cfgFiles:
+      upf.jsonc:
+        li:
+          ne_id: upf-1
+          tf_id: smf-1
+          x1_listen: "0.0.0.0:8443"
+          x3_sockaddr: "/pod-share/li_x3"
+          cert: /etc/li/certs/tls.crt
+          key: /etc/li/certs/tls.key
+          ca_cert: /etc/li/certs/ca.crt
+YAML
+
+renderupf() {
+	helm template upf bess-upf -f "$upfbase" "$@" 2>&1
+}
+
+# The rendered upf.jsonc is a JSON string inside YAML, so the assertions read the escaped
+# form: \"key\":value. Reading the JSON as JSON would need a parser the other checks do not
+# use, and the escaping is itself part of what must be right.
+rendered() {
+	grep -o "\\\\\"$1\\\\\":[^,}]*" <<<"$2" | head -1 | sed 's/.*://'
+}
+
+for key in x2x3_keepalive_enabled deactivate_all_tasks remove_all_destinations; do
+	for value in false true; do
+		out=$(renderupf --set-string "config.upf.cfgFiles.upf\.jsonc.li.$key=$value") ||
+			fail "a quoted \"$value\" for the UPF's li.$key was refused: $out"
+		[ "$(rendered "$key" "$out")" = "$value" ] ||
+			fail "the UPF's li.$key did not render as a JSON boolean for a quoted \"$value\"; the element's config decode would refuse the whole file:
+$(rendered "$key" "$out")"
+	done
+
+	out=$(renderupf --set-string "config.upf.cfgFiles.upf\.jsonc.li.$key=maybe" || true)
+	grep -q "li.$key" <<<"$out" ||
+		fail "the UPF's li.$key accepted a value that is not a boolean, or failed without naming the key: $out"
+done
+
+# x3_rcvbuf: a whole number of bytes, and an int in the rendered JSON.
+out=$(renderupf --set-string 'config.upf.cfgFiles.upf\.jsonc.li.x3_rcvbuf=8388608') ||
+	fail "a quoted x3_rcvbuf was refused: $out"
+[ "$(rendered x3_rcvbuf "$out")" = 8388608 ] ||
+	fail "the UPF's li.x3_rcvbuf did not render as a JSON number: $(rendered x3_rcvbuf "$out")"
+
+out=$(renderupf --set-string 'config.upf.cfgFiles.upf\.jsonc.li.x3_rcvbuf=lots' || true)
+grep -q "li.x3_rcvbuf" <<<"$out" ||
+	fail "a non-numeric x3_rcvbuf rendered without complaint, or failed without naming the key: $out"
+
+# deactivate_all_tasks is the one key the UPF chart defaults rather than omitting, and the
+# default is false — the bulk operation removed from an interface reachable by anyone holding
+# an SMF-bound LI certificate, on an element whose peer implements no bulk request at all.
+# Asserting it here is what stops the default being lost the next time the block is rebuilt.
+out=$(renderupf)
+[ "$(rendered deactivate_all_tasks "$out")" = false ] ||
+	fail "the UPF no longer defaults li.deactivate_all_tasks to false: $(rendered deactivate_all_tasks "$out")"
+
+# And the two that are genuinely tri-state stay absent, so the element can tell "no agreement
+# in advance" from "refused".
+for key in x2x3_keepalive_enabled remove_all_destinations; do
+	[ -z "$(rendered "$key" "$out")" ] ||
+		fail "the UPF rendered li.$key while unset; the element can no longer tell \"default\" from \"off\""
+done
+
+# ── One render, two ways ──
+#
+# --show-only is how an operator inspects one manifest, and how the checks above would be
+# written if they were written for convenience. It re-renders the whole chart and filters, so
+# a template whose output depended on evaluation order would differ between the two — and the
+# LI block is built by mutating a local dict, which is exactly the shape that can.
+full=$(renderupf --set-string 'config.upf.cfgFiles.upf\.jsonc.li.x2x3_keepalive_enabled=false')
+only=$(renderupf --set-string 'config.upf.cfgFiles.upf\.jsonc.li.x2x3_keepalive_enabled=false' \
+	--show-only templates/configmap-upf.yaml)
+fullblock=$(grep -o '\\"li\\":{[^}]*}' <<<"$full" | head -1)
+onlyblock=$(grep -o '\\"li\\":{[^}]*}' <<<"$only" | head -1)
+[ -n "$fullblock" ] || fail "the LI block did not render in the full render"
+[ "$fullblock" = "$onlyblock" ] ||
+	fail "the LI block differs between a full render and --show-only:
+  full: $fullblock
+  only: $onlyblock"
+
+cpfull=$(render amf --set-string config.amf.li.x2x3KeepaliveEnabled=false)
+cponly=$(helm template cp 5g-control-plane \
+	--set config.amf.li.enabled=true \
+	--set config.amf.li.mdf2=10.0.0.1:9000 \
+	--set config.amf.li.mdf3=10.0.0.1:9001 \
+	--set-string config.amf.li.x2x3KeepaliveEnabled=false \
+	--show-only templates/configmap-amf.yaml 2>&1)
+[ "$(grep -cE '^ +x2x3KeepaliveEnabled: false$' <<<"$cpfull")" = 1 ] ||
+	fail "the control plane's rendered boolean is not there to compare"
+grep -qE '^ +x2x3KeepaliveEnabled: false$' <<<"$cponly" ||
+	fail "the control plane's LI boolean differs between a full render and --show-only:
+$(grep -E 'x2x3KeepaliveEnabled' <<<"$cponly" || echo '  (it did not render at all)')"
+
+# ── Each triggering entry names all three of its keys ──
+#
+# An entry missing one used to fail on `hasKey $seenNEIDs $t.neId` with "wrong type for value;
+# expected string; got interface {}", which names neither the key nor the entry — for a
+# mistake in the values file the operator has just edited.
+for missing in neId nodeId x1Url; do
+	args="--set config.smf.li.upfTriggers[0].nodeId=upf --set config.smf.li.upfTriggers[0].neId=upf-1 --set config.smf.li.upfTriggers[0].x1Url=https://upf-1:8443/X1/NE"
+	# shellcheck disable=SC2001 # the substitution is over a fixed, known string
+	args=$(sed "s#--set config.smf.li.upfTriggers\[0\].$missing=[^ ]*##" <<<"$args")
+	# shellcheck disable=SC2086 # the args are deliberately word-split
+	out=$(render smf $args || true)
+	grep -q "config.smf.li.upfTriggers\[0\].$missing is required" <<<"$out" ||
+		fail "a triggering entry with no $missing was accepted, or failed without naming the key: $out"
+done
+
+echo "check-li-tristate: both charts coerce the LI tri-states to real booleans, refuse anything else naming the key, render identically under --show-only, and require each triggering entry's three keys"

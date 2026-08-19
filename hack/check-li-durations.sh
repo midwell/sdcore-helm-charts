@@ -56,13 +56,33 @@ for nf in amf smf; do
 			fail "the render failed for a reason other than this guard: $out"
 		fi
 
+		# Every spelling the element cannot use, not only the unit-less one.
+		#
+		# The four beyond "30" are why the floor exists. "1ns" is a well-formed Go duration
+		# and positive, so it passed both the old regex and the element's own test — and then
+		# the window was halved to produce the watchdog's tick interval, integer division
+		# reached zero, time.NewTicker panicked on a goroutine, and the network function went
+		# down. An LI value took out the element, which is the one cost an LI mistake may
+		# never have. "0s" and "500ms" are the same floor reached from below; "-5m" is the
+		# sign the old pattern admitted.
+		for bad in 30 1ns 0s 500ms -5m; do
+			out=$(helm template cp 5g-control-plane \
+				--set "config.$nf.li.enabled=true" \
+				--set "config.$nf.li.mdf2=10.0.0.1:9000" \
+				--set "config.$nf.li.mdf3=10.0.0.1:9001" \
+				--set-string "config.$nf.li.$key=$bad" 2>&1 || true)
+			grep -q "config.$nf.li.$key" <<<"$out" ||
+				fail "the unusable duration \"$bad\" for config.$nf.li.$key rendered without complaint: $out"
+		done
+
+		# And a multi-component value above the floor is not caught by the floor test:
+		# "0h30m" reads as zero-something and is thirty minutes.
 		out=$(helm template cp 5g-control-plane \
 			--set "config.$nf.li.enabled=true" \
 			--set "config.$nf.li.mdf2=10.0.0.1:9000" \
 			--set "config.$nf.li.mdf3=10.0.0.1:9001" \
-			--set "config.$nf.li.$key=30" 2>&1 || true)
-		grep -q "config.$nf.li.$key" <<<"$out" ||
-			fail "an unusable duration for config.$nf.li.$key rendered without complaint"
+			--set-string "config.$nf.li.$key=0h30m" 2>&1) ||
+			fail "a valid multi-component duration was refused for config.$nf.li.$key: $out"
 	done
 done
 
@@ -100,11 +120,18 @@ for key in trigger_keepalive x2x3_keepalive_time_p1 x2x3_keepalive_time_p2; do
 		fail "the render failed for a reason other than this guard: $out"
 	fi
 
-	bad=$work/bad.yaml
-	{ cat "$base"; echo "          $key: \"5min\""; } >"$bad"
-	out=$(helm template upf bess-upf -f "$bad" 2>&1 || true)
-	grep -q "li.$key" <<<"$out" ||
-		fail "an unusable duration for li.$key rendered without complaint"
+	for badvalue in 5min 1ns 0s 500ms -5m; do
+		bad=$work/bad.yaml
+		{ cat "$base"; echo "          $key: \"$badvalue\""; } >"$bad"
+		out=$(helm template upf bess-upf -f "$bad" 2>&1 || true)
+		grep -q "li.$key" <<<"$out" ||
+			fail "the unusable duration \"$badvalue\" for li.$key rendered without complaint: $out"
+	done
+
+	multi=$work/multi.yaml
+	{ cat "$base"; echo "          $key: \"0h30m\""; } >"$multi"
+	out=$(helm template upf bess-upf -f "$multi" 2>&1) ||
+		fail "a valid multi-component duration was refused for li.$key: $out"
 done
 
-echo "check-li-durations: unusable LI timers are refused at render time on both charts"
+echo "check-li-durations: unusable LI timers — unit-less, signed, and below the one-second floor — are refused at render time on both charts"
