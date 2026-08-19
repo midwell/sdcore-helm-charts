@@ -190,9 +190,12 @@ config:
     # Keepalive every TIME_P1 and disconnects, reconnects and reports a fault if
     # nothing acknowledges within TIME_P2. Omitted, they give the specification's own
     # behaviour — enabled, 60 s and 180 s — which is what a deployment should ship
-    # with. Unlike the control plane, this element refuses an unusable pair outright
-    # rather than falling back, so TIME_P2 must exceed TIME_P1 or the UPF will not
-    # start.
+    # with. TIME_P2 must exceed TIME_P1, and a pair that does not is reported to the
+    # ADMF and then discarded in favour of those defaults — the same answer the
+    # control-plane elements give. It used to stop the user plane instead, which was
+    # the wrong instrument twice over: the specification supplies both defaults
+    # normatively, so there is something correct to fall back to, and the refusal also
+    # named an LI field in the general operator log.
     #
     #   x2x3_keepalive_enabled: false   # only for an MDF that never acknowledges
     #   x2x3_keepalive_time_p1: "60s"
@@ -214,8 +217,10 @@ config:
         # check, so this must be a name the UPF's LI certificate covers.
         #
         # It must also be the host in the control plane's own default —
-        # 5g-control-plane's config.smf.cfgFiles."smf.yaml".configuration.li
-        # .upfTriggers[].x1Url, which is https://upf-1:8443/X1/NE. The two charts
+        # 5g-control-plane's config.smf.li.upfTriggers[].x1Url, which is
+        # https://upf-1:8443/X1/NE. That is a chart values key rather than a path
+        # into the SMF's own configuration file: the chart builds the li block from
+        # config.smf.li, and the file it builds it into is smfcfg.yaml. The two charts
         # are installed separately and nothing checks them against each other, so
         # a disagreement here is not a render error: it is a CC triggering
         # function whose every trigger and every withdrawal fails, permanently,
