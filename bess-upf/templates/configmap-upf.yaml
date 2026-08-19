@@ -6,8 +6,25 @@ mediation function can attribute, and neither is visible from outside. Catching 
 here turns a silent compliance failure into a refused deployment.
 */}}
 {{- $upfCfg := index .Values.config.upf.cfgFiles "upf.jsonc" }}
+{{/*
+liOut is the LI block as it will be rendered: a dict of this template's own, built from the
+operator's values rather than by mutating them.
+
+Two reasons it is a copy. The tri-state booleans have to be *coerced* — an operator using
+`--set-string`, which is the documented way to set a value Helm would otherwise reinterpret,
+produces a JSON string where the UPF declares a `*bool`, and the element's config decode then
+fails and `main.go`'s `Fatalln` crash-loops the user plane. That is the one cost an LI
+configuration mistake may never have, and the control-plane chart has guarded it all along
+while this one did not. And the default below was applied with `set` *into `.Values`*, which
+mutates the release's own values for every template rendered after this one — a global side
+effect to express a local default.
+*/}}
+{{- $liOut := dict }}
 {{- if hasKey $upfCfg "li" }}
 {{- $li := index $upfCfg "li" }}
+{{- range $k, $v := $li }}
+{{- $_ := set $liOut $k $v }}
+{{- end }}
 {{/*
 Refuse an unusable Lawful Interception timer before anything is deployed. See
 _li-duration.tpl for why this belongs here as well as in the element: the UPF now
@@ -39,7 +56,39 @@ The AMF and SMF get no such default. Their peer is an agency's ADMF, the policy 
 agreement this project is not party to, and their unset state is the specification's own.
 */}}
 {{- if not (hasKey $li "deactivate_all_tasks") }}
-{{- $_ := set $li "deactivate_all_tasks" false }}
+{{- $_ := set $liOut "deactivate_all_tasks" false }}
+{{- end }}
+{{/*
+The tri-state booleans, coerced to real bools. See _li-tristate.tpl for why these three keys
+need a guard the other values do not, and liOut above for what a quoted one costs here.
+
+Unset is a third state and not a synonym for false — it means "take the specification's
+default" — so an empty value is removed from the block rather than rendered.
+*/}}
+{{- range $key := list "x2x3_keepalive_enabled" "deactivate_all_tasks" "remove_all_destinations" }}
+{{- if hasKey $liOut $key }}
+{{- $rendered := include "omec-user-plane.li.triStateBool" (dict "value" (index $liOut $key) "key" (printf "config.upf.cfgFiles['upf.jsonc'].li.%s" $key)) }}
+{{- if eq $rendered "true" }}
+{{- $_ := set $liOut $key true }}
+{{- else if eq $rendered "false" }}
+{{- $_ := set $liOut $key false }}
+{{- else }}
+{{- $_ := unset $liOut $key }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{/*
+x3_rcvbuf is an int in the element's configuration, and the same --set-string that quotes a
+bool quotes this. Coerced rather than guessed at: a value that is not a whole number fails the
+render naming the key, because atoi would silently make it zero — and zero is a socket this
+element deepens to nothing, which loses content under burst with no sign of why.
+*/}}
+{{- if hasKey $liOut "x3_rcvbuf" }}
+{{- $rcv := index $liOut "x3_rcvbuf" | toString }}
+{{- if not (regexMatch "^[0-9]+$" $rcv) }}
+{{- fail (printf "config.upf.cfgFiles['upf.jsonc'].li.x3_rcvbuf: %q is not a whole number of bytes" $rcv) }}
+{{- end }}
+{{- $_ := set $liOut "x3_rcvbuf" (atoi $rcv) }}
 {{- end }}
 {{- range $field := list "x3_sockaddr" "cert" "key" "ca_cert" "ne_id" "x1_listen" "tf_id" }}
 {{- if not (index $li $field) }}
@@ -62,7 +111,11 @@ metadata:
 {{ tuple "upf" . | include "omec-user-plane.metadata_labels" | indent 4 }}
 data:
 {{- range $key, $value := .Values.config.upf.cfgFiles }}
+{{- if and (eq $key "upf.jsonc") (hasKey $value "li") }}
+  {{ $key }}: {{ toJson (mustMergeOverwrite (omit (deepCopy $value) "li") (dict "li" $liOut)) | quote }}
+{{- else }}
   {{ $key }}: {{ toJson $value | quote }}
+{{- end }}
 {{- end }}
   bessd-start.sh: |
 {{ tuple "bin/_bessd-start.sh.tpl" . | include "omec-user-plane.template" | indent 4 }}
