@@ -44,6 +44,37 @@ that reaches no element.
 {{- end }}
 
 {{/*
+And the same guards over a **hand-written** li block in cfgFiles.
+
+`hasKey $amfcfg.configuration "li"` below is an escape hatch: an operator who writes the block
+themselves gets it passed through verbatim, which is deliberate — it is how a deployment reaches
+a setting this chart does not model. What was not deliberate is that it also skipped every guard
+above, so exactly the operator most likely to have hand-written a value was the one whose value
+was never checked.
+
+The tri-state booleans are **refused** rather than coerced here, unlike the chart-built block:
+this element's config is YAML and the block is passed through as the operator wrote it, so a
+quoted "false" would still reach the element as a string and fail its decode. Coercing would mean
+rewriting a block whose whole point is that it is not rewritten.
+*/}}
+{{- if hasKey $amfcfg.configuration "li" -}}
+{{- $hand := index $amfcfg.configuration "li" -}}
+{{- range $key := list "keepaliveTimeout" "x2x3KeepaliveTimeP1" "x2x3KeepaliveTimeP2" -}}
+{{- if hasKey $hand $key -}}
+{{- include "5g-control-plane.li.checkDuration" (dict "value" (index $hand $key) "key" (printf "config.amf.cfgFiles['amfcfg.yaml'].configuration.li.%s" $key)) -}}
+{{- end -}}
+{{- end -}}
+{{- range $key := list "x2x3KeepaliveEnabled" "deactivateAllTasks" "removeAllDestinations" -}}
+{{- if hasKey $hand $key -}}
+{{- $v := index $hand $key -}}
+{{- if not (or (kindIs "bool" $v) (kindIs "invalid" $v)) -}}
+{{- fail (printf "config.amf.cfgFiles['amfcfg.yaml'].configuration.li.%s: %v is not a boolean. This block is passed through as written, so a quoted value reaches the element as a string and fails its configuration decode — write true or false unquoted, or leave the key out to take the specification's default." $key $v) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Lawful Interception. The credential paths follow the Secret mounted at certDir by
 the deployment, and x1Listen matches the port the X1 Service exposes, so enabling
 LI needs no second place to keep in step. Optional fields are set only when
